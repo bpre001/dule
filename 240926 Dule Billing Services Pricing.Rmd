@@ -1,0 +1,62 @@
+---
+title: 'Dule: Billing Services Pricing Model'
+author: "Benjamin Preston"
+date: "2024-09-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Introduction
+
+For Billing Services, we want to be competitive with our costing, recognising that 
+
+
+
+
+```{r costing}
+
+base_billing <- 21000 # base billing charge to BC (excl GST)
+base_n <- 61 * 2 # base number of meters (water and electricity)
+
+discount_for_double_n <- 0.5
+
+log2_n <- c(log2(base_n),log2(base_n*2))
+y <- c(base_billing, 
+       base_billing * (2 - discount_for_double_n))
+lm.fit <- lm(y ~ log2_n)
+
+tot_cost <- function(n) {
+  predict(lm.fit, data.frame(log2_n = log2(n)))
+}
+
+ind_cost <- function(n) {
+  tot_cost(n) / n / 12
+}
+
+n <- 10:55 * 10
+tot <- sapply(n, tot_cost)
+ind <- sapply(n, ind_cost)
+
+# check that we get back base cost given base_n
+(base_tot_cost <- tot_cost(base_n))
+(abs(base_tot_cost-base_billing) < 1e-6) # machine precision equality
+# meter monthly cost
+ind_cost(base_n)
+
+# total cost indication for 180, 360 and 540 meters
+tot_cost(180 * 1:3)
+# differenced cost to provide incremental 180 meters
+diff(tot_cost(180 * 1:3))
+# meter monthly cost
+ind_cost(180 * 1:3)
+
+plot.new()  
+plot(n, tot, type = "l", xlab = "Number of meters", ylab = "Annual Billing Cost (excl GST)")  
+plot(n, ind, type = "l", xlab = "Number of meters", ylab = "Meter Monthly Cost (excl GST)")  
+
+```
+
